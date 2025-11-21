@@ -3,11 +3,7 @@
 
 const API_URL = window.location.hostname === 'localhost'
   ? 'http://127.0.0.1:5000'
-<<<<<<< HEAD
   : 'https://codetoflow-qmze.onrender.com'; // Production backend URL
-=======
-  : 'https://codetoflow-qmze.onrender.com'; // Update this after deploying backend
->>>>>>> 247acc6a66e9bced119e10d1ed395397e85ae98e
 
 // Initialize Lucide Icons
 lucide.createIcons();
