@@ -94,7 +94,7 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
 
     const { nodes, edges } = data;
 
-    let mermaidCode = "graph LR;\n";
+    let mermaidCode = "graph TD;\n";
     nodes.forEach((node) => {
       const label = node.label.replace(/"/g, "");
       mermaidCode += `${node.id}["${label}"]\n`;
