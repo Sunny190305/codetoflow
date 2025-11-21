@@ -26,9 +26,12 @@ def parse_java_code(code):
     else_if_pattern = re.compile(r'^else\s+if\s*\((.*)\)\s*\{?$')
     while_pattern = re.compile(r'^while\s*\((.*)\)\s*\{?$')
     for_pattern = re.compile(r'^for\s*\((.*)\)\s*\{?$')
+    switch_pattern = re.compile(r'^switch\s*\((.*)\)\s*\{?$')
+    case_pattern = re.compile(r'^case\s+(.*):$')
+    default_pattern = re.compile(r'^default\s*:$')
     
     last_id = None
-    decision_stack = []
+    stack = []
     
     i = 0
     while i < len(lines):
@@ -41,34 +44,66 @@ def parse_java_code(code):
             continue
 
         if match := method_pattern.match(line):
-            if "if" not in line and "while" not in line and "for" not in line and "new" not in line:
+            if "if" not in line and "while" not in line and "for" not in line and "new" not in line and "switch" not in line:
                 node_id = add_node(nodes, "function", f"Method: {match.group(1)}")
         
+        # Switch statement
+        elif match := switch_pattern.match(line):
+            node_id = add_node(nodes, "decision", f"Switch: {match.group(1)}")
+            if last_id:
+                edges.append({"from": last_id, "to": node_id})
+            stack.append({"type": "switch", "id": node_id, "end_nodes": []})
+            last_id = None # Reset last_id so cases connect to switch
+            i += 1
+            continue
+
+        # Case statement
+        elif match := case_pattern.match(line):
+            node_id = add_node(nodes, "decision", f"Case: {match.group(1)}")
+            if stack and stack[-1]["type"] == "switch":
+                edges.append({"from": stack[-1]["id"], "to": node_id})
+            last_id = node_id
+            i += 1
+            continue
+
+        # Default statement
+        elif default_pattern.match(line):
+            node_id = add_node(nodes, "decision", "Default")
+            if stack and stack[-1]["type"] == "switch":
+                edges.append({"from": stack[-1]["id"], "to": node_id})
+            last_id = node_id
+            i += 1
+            continue
+
+        # Break statement (end of a case)
+        elif line == "break;":
+            if stack and stack[-1]["type"] == "switch":
+                pass
+            last_id = None # Stop flow from break
+            i += 1
+            continue
+
         elif match := if_pattern.match(line):
             node_id = add_node(nodes, "decision", f"If: {match.group(1)}")
             if last_id:
                 edges.append({"from": last_id, "to": node_id})
-            decision_stack.append({"if_node": node_id, "last_then": None, "last_else": None})
-            last_id = None
+            stack.append({"type": "if", "id": node_id, "end_nodes": []})
+            last_id = node_id
             i += 1
             continue
             
         elif match := else_if_pattern.match(line):
             node_id = add_node(nodes, "decision", f"Else If: {match.group(1)}")
-            if decision_stack:
-                parent = decision_stack[-1]["if_node"]
-                edges.append({"from": parent, "to": node_id})
-            decision_stack.append({"if_node": node_id, "last_then": None, "last_else": None})
-            last_id = None
+            if last_id:
+                edges.append({"from": last_id, "to": node_id})
+            last_id = node_id
             i += 1
             continue
             
         elif else_pattern.match(line):
             node_id = add_node(nodes, "process", "Else")
-            if decision_stack:
-                parent = decision_stack[-1]["if_node"]
-                edges.append({"from": parent, "to": node_id})
-                decision_stack[-1]["last_else"] = node_id
+            if last_id:
+                edges.append({"from": last_id, "to": node_id})
             last_id = node_id
             i += 1
             continue
@@ -83,8 +118,8 @@ def parse_java_code(code):
             node_id = add_node(nodes, "process", line)
         
         elif line == '}':
-            if decision_stack:
-                decision_stack.pop()
+            if stack:
+                stack.pop()
             i += 1
             continue
             
@@ -92,10 +127,6 @@ def parse_java_code(code):
         if node_id:
             if last_id:
                 edges.append({"from": last_id, "to": node_id})
-            elif decision_stack and decision_stack[-1]["last_then"] is None:
-                parent = decision_stack[-1]["if_node"]
-                edges.append({"from": parent, "to": node_id})
-                decision_stack[-1]["last_then"] = node_id
             last_id = node_id
             
         i += 1
