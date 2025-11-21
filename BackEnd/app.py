@@ -4,7 +4,7 @@ try:
     from flask_cors import CORS
 except ImportError:
     # Define a dummy CORS that does nothing
-    def CORS(app):
+    def CORS(app, **kwargs):
         pass
 from parser.python_parser import parse_python_code
 from parser.c_cpp_parser import parse_c_cpp_code
@@ -12,7 +12,7 @@ from parser.java_parser import parse_java_code
 from parser.html_parser import parse_html_code
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend-backend communication
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
 
 @app.route('/parse', methods=['POST'])
 def parse_code():
