@@ -19,24 +19,25 @@ def parse_java_code(code):
     code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
     lines = [line.strip() for line in code.split('\n') if line.strip()]
     
-    last_id = None
-    
     # Regex patterns
-    # Method definition: public static void main(String[] args) {
-    # Simplified: access_mod return_type name(args) {
     method_pattern = re.compile(r'^(?:public|private|protected|static|\s)*[\w<>]+\s+(\w+)\s*\(.*\)\s*\{?$')
-    
     if_pattern = re.compile(r'^if\s*\((.*)\)\s*\{?$')
     else_pattern = re.compile(r'^else\s*\{?$')
     else_if_pattern = re.compile(r'^else\s+if\s*\((.*)\)\s*\{?$')
     while_pattern = re.compile(r'^while\s*\((.*)\)\s*\{?$')
     for_pattern = re.compile(r'^for\s*\((.*)\)\s*\{?$')
     
-    for line in lines:
+    last_id = None
+    decision_stack = []
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         node_id = None
         
-        # Check for class definition (ignore for flow, but maybe good to note)
+        # Check for class definition (ignore for flow)
         if line.startswith("class "):
+            i += 1
             continue
 
         if match := method_pattern.match(line):
@@ -45,12 +46,32 @@ def parse_java_code(code):
         
         elif match := if_pattern.match(line):
             node_id = add_node(nodes, "decision", f"If: {match.group(1)}")
+            if last_id:
+                edges.append({"from": last_id, "to": node_id})
+            decision_stack.append({"if_node": node_id, "last_then": None, "last_else": None})
+            last_id = None
+            i += 1
+            continue
             
         elif match := else_if_pattern.match(line):
             node_id = add_node(nodes, "decision", f"Else If: {match.group(1)}")
+            if decision_stack:
+                parent = decision_stack[-1]["if_node"]
+                edges.append({"from": parent, "to": node_id})
+            decision_stack.append({"if_node": node_id, "last_then": None, "last_else": None})
+            last_id = None
+            i += 1
+            continue
             
         elif else_pattern.match(line):
             node_id = add_node(nodes, "process", "Else")
+            if decision_stack:
+                parent = decision_stack[-1]["if_node"]
+                edges.append({"from": parent, "to": node_id})
+                decision_stack[-1]["last_else"] = node_id
+            last_id = node_id
+            i += 1
+            continue
             
         elif match := while_pattern.match(line):
             node_id = add_node(nodes, "loop", f"While: {match.group(1)}")
@@ -60,10 +81,23 @@ def parse_java_code(code):
             
         elif line.endswith(';') and '}' not in line and '{' not in line:
             node_id = add_node(nodes, "process", line)
+        
+        elif line == '}':
+            if decision_stack:
+                decision_stack.pop()
+            i += 1
+            continue
             
+        # Connect nodes
         if node_id:
             if last_id:
                 edges.append({"from": last_id, "to": node_id})
+            elif decision_stack and decision_stack[-1]["last_then"] is None:
+                parent = decision_stack[-1]["if_node"]
+                edges.append({"from": parent, "to": node_id})
+                decision_stack[-1]["last_then"] = node_id
             last_id = node_id
+            
+        i += 1
             
     return {"nodes": nodes, "edges": edges}
