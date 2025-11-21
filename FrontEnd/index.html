@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code-to-Flow</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            primary: '#6366f1',
+            secondary: '#a855f7',
+            dark: {
+              bg: '#0f172a',
+              card: '#1e293b',
+              text: '#f8fafc'
+            },
+            light: {
+              bg: '#f8fafc',
+              card: '#ffffff',
+              text: '#1e293b'
+            }
+          },
+          animation: {
+            'blob': 'blob 7s infinite',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body
+  class="bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-300 min-h-screen overflow-x-hidden selection:bg-primary selection:text-white">
+
+  <!-- Custom Cursor -->
+  <div id="cursor"
+    class="fixed w-6 h-6 border-2 border-primary rounded-full pointer-events-none z-50 transition-transform duration-100 ease-out hidden md:block mix-blend-difference">
+  </div>
+  <div id="cursor-dot" class="fixed w-2 h-2 bg-primary rounded-full pointer-events-none z-50 hidden md:block"></div>
+
+  <!-- Background Blobs -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div
+      class="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob">
+    </div>
+    <div
+      class="absolute top-0 right-1/4 w-96 h-96 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000">
+    </div>
+    <div
+      class="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000">
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="relative z-10 flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+    <div class="flex items-center gap-2">
+      <div class="p-2 bg-gradient-to-br from-primary to-secondary rounded-lg shadow-lg shadow-primary/20">
+        <i data-lucide="git-branch" class="w-6 h-6 text-white"></i>
+      </div>
+      <span
+        class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">CodeToFlow</span>
+    </div>
+    <button id="themeToggle"
+      class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors duration-200">
+      <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+      <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="relative z-10 max-w-6xl mx-auto px-6 py-8">
+
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h1
+        class="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-pink-500">
+        Visualize Your Code Logic
+      </h1>
+      <p class="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto">
+        Instantly convert your Python, C, C++, Java, or HTML code into beautiful, interactive flowcharts.
+      </p>
+    </div>
+
+    <!-- Input Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+
+      <!-- Code Editor Card -->
+      <div class="group relative">
+        <div
+          class="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500">
+        </div>
+        <div
+          class="relative bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl">
+
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="code-2" class="w-5 h-5 text-primary"></i>
+              <span class="font-semibold">Source Code</span>
+            </div>
+            <div class="relative">
+              <select id="languageSelect"
+                class="appearance-none bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <option value="python">Python</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="java">Java</option>
+                <option value="html">HTML</option>
+              </select>
+              <i data-lucide="chevron-down"
+                class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"></i>
+            </div>
+          </div>
+
+          <textarea id="codeInput" placeholder="Paste your code here..."
+            class="w-full h-96 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-4 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200 custom-scrollbar"
+            spellcheck="false"></textarea>
+
+          <div class="flex gap-4 mt-6">
+            <button id="generateBtn"
+              class="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white py-3 px-6 rounded-xl font-medium shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-200 group/btn">
+              <i data-lucide="zap" class="w-5 h-5 group-hover/btn:fill-white transition-colors"></i>
+              Generate Flowchart
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flowchart Display Card -->
+      <div class="group relative">
+        <div
+          class="absolute -inset-0.5 bg-gradient-to-r from-secondary to-pink-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500">
+        </div>
+        <div
+          class="relative bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl h-full flex flex-col">
+
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="workflow" class="w-5 h-5 text-secondary"></i>
+              <span class="font-semibold">Flowchart</span>
+            </div>
+            <button id="exportBtn"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-500 hover:text-primary"
+              title="Export PNG">
+              <i data-lucide="download" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <div id="flowchart"
+            class="flex-1 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl p-4 overflow-auto flex items-center justify-center min-h-[384px] custom-scrollbar">
+            <div class="text-center text-gray-400">
+              <i data-lucide="box-select" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+              <p>Flowchart will appear here...</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
